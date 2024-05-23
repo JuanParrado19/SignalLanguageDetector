@@ -8,8 +8,7 @@ import threading
 import warnings 
 import serial
 
-ser = serial.Serial('COM3', 9600) # Cambia 'COM3' al puerto donde está conectado tu Arduino
-
+ser = serial.Serial('COM3', 9600) 
 warnings.filterwarnings('ignore')
 
 # Cargar el modelo
@@ -132,6 +131,7 @@ result_label.grid(row=1, column=0, columnspan=2, pady=10)
 # Función para iniciar el procesamiento de video en un hilo separado
 def start_video_processing():
     word = word_entry.get().upper()  # Convertir la palabra a mayúsculas
+    ser.
     threading.Thread(target=process_video, args=(word,)).start()
 
 # Agregar un botón para iniciar la detección
