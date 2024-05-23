@@ -6,6 +6,9 @@ import numpy as np
 import pickle
 import threading
 import warnings 
+import serial
+
+ser = serial.Serial('COM3', 9600) # Cambia 'COM3' al puerto donde está conectado tu Arduino
 
 warnings.filterwarnings('ignore')
 
