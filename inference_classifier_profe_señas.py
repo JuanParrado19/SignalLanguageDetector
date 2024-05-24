@@ -88,8 +88,12 @@ def process_video(word):
                     if predicted_character == word[current_letter_idx]:
                         detected_letters.append(predicted_character)
                         current_letter_idx += 1
+                        ser.write(b'1')
+                        print("Letra detectada correctamente ")
                         if current_letter_idx >= len(word):
                             result_label.config(text="Palabra correcta")
+                            ser.write(b'2')
+                            print("Palabra correcta")
                             detected_letters = []
                             current_letter_idx = 0
                             break
@@ -97,7 +101,6 @@ def process_video(word):
                         detected_letters = []
                         current_letter_idx = 0
                     letter_duration = 0
-
                 last_detected_letter = predicted_character
 
         # Mostrar el video
