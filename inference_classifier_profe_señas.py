@@ -12,6 +12,8 @@ ser = serial.Serial('COM3', 9600) # Cambia 'COM3' al puerto donde está conectad
 
 warnings.filterwarnings('ignore')
 
+result_label = None
+
 # Cargar el modelo
 model_dict = pickle.load(open('model.p', 'rb'))
 model = model_dict['model']
@@ -26,6 +28,7 @@ labels_dict = {0: 'A', 1: 'B', 2: 'C', 3: 'D', 4: 'E', 5: 'F', 6: 'G', 7: 'H', 8
 
 # Función para procesar el video y detectar letras
 def process_video(word):
+    global result_label
     cap = cv2.VideoCapture(0)
     detected_letters = []
     letter_duration = 0
@@ -84,7 +87,7 @@ def process_video(word):
                 else:
                     letter_duration = 0
 
-                if letter_duration > 30:  # Aproximadamente 1 segundo
+                if letter_duration > 20:  # Aproximadamente 1 segundo
                     if predicted_character == word[current_letter_idx]:
                         detected_letters.append(predicted_character)
                         current_letter_idx += 1
@@ -112,34 +115,67 @@ def process_video(word):
         matched_letters = "".join(detected_letters)
         result_label.config(text=f"Letras detectadas: {matched_letters}")
 
+        if current_letter_idx >= len(word):
+            root.destroy() # Cerrar la ventana principal si se detecta la palabra correcta
+            result_window = tk.Tk()
+            result_window.title("Resultado")
+            result_label = ttk.Label(result_window, text="¡Palabra correcta!", font=("Helvetica", 16))
+            result_label.pack(pady=10)
+
+            def restart_program():
+                result_window.destroy()
+                start_video_processing()
+
+            restart_button = ttk.Button(result_window, text="Nueva palabra", command=restart_program)
+            restart_button.pack(pady=10)
+
+            exit_button = ttk.Button(result_window, text="Salir del programa", command=result_window.destroy)
+            exit_button.pack(pady=10)
+
+            result_window.mainloop()
+
     cap.release()
     cv2.destroyAllWindows()
 
-# Crear la ventana principal
-root = tk.Tk()
-root.title("Detección de Letras por Figuras")
+def show_main_window():
+    global result_label
+    # Crear la ventana principal
+    root = tk.Tk()
+    root.title("Detección de Letras por Figuras")
 
-# Crear el marco principal
-frame = ttk.Frame(root, padding="10")
-frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+    # Crear el marco principal
+    frame = ttk.Frame(root, padding="10")
+    frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
-# Agregar un campo de entrada para la palabra
-ttk.Label(frame, text="Ingrese la palabra:").grid(row=0, column=0, sticky=tk.W)
-word_entry = ttk.Entry(frame, width=20)
-word_entry.grid(row=0, column=1, sticky=(tk.W, tk.E))
+    # Agregar un campo de entrada para la palabra
+    ttk.Label(frame, text="Ingrese la palabra:").grid(row=0, column=0, sticky=tk.W)
+    word_entry = ttk.Entry(frame, width=20)
+    word_entry.grid(row=0, column=1, sticky=(tk.W, tk.E))
 
-# Crear un campo para mostrar el resultado
-result_label = ttk.Label(frame, text="", font=("Helvetica", 16))
-result_label.grid(row=1, column=0, columnspan=2, pady=10)
+    # Crear un campo para mostrar el resultado
+    result_label = ttk.Label(frame, text="", font=("Helvetica", 16))
+    result_label.grid(row=1, column=0, columnspan=2, pady=10)
 
-# Función para iniciar el procesamiento de video en un hilo separado
-def start_video_processing():
-    word = word_entry.get().upper()  # Convertir la palabra a mayúsculas
-    threading.Thread(target=process_video, args=(word,)).start()
+    # Función para iniciar el procesamiento de video en un hilo separado
+    def start_video_processing():
+        word = word_entry.get().upper()  # Convertir la palabra a mayúsculas
+        threading.Thread(target=process_video, args=(word,)).start()
 
-# Agregar un botón para iniciar la detección
-start_button = ttk.Button(frame, text="Iniciar", command=start_video_processing)
-start_button.grid(row=2, column=0, columnspan=2)
+    # Agregar un botón para iniciar la detección
+    start_button = ttk.Button(frame, text="Iniciar", command=start_video_processing)
+    start_button.grid(row=2, column=0, columnspan=2)
+
+    # Ejecutar el bucle principal de la interfaz
+    root.mainloop()
+
+# Crear la ventana de bienvenida
+welcome = tk.Tk()
+welcome.title("Bienvenido a Profe Señas")
+welcome.geometry("300x200")  # Puedes ajustar el tamaño de la ventana de bienvenida aquí
+label = ttk.Label(welcome, text="Bienvenido a Profe señas", font=("Helvetica", 16))
+label.pack(expand=True)
+
+welcome.after(2200, lambda: [welcome.destroy(), show_main_window()])  # Muestra la ventana principal después de 2.2 segundos
 
 # Ejecutar el bucle principal de la interfaz
-root.mainloop()
+welcome.mainloop()
