@@ -8,8 +8,7 @@ import threading
 import warnings 
 import serial
 
-ser = serial.Serial('COM3', 9600) # Cambia 'COM3' al puerto donde está conectado tu Arduino
-
+ser = serial.Serial('COM3', 9600) 
 warnings.filterwarnings('ignore')
 
 result_label = None
