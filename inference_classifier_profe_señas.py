@@ -5,7 +5,10 @@ import mediapipe as mp
 import numpy as np
 import pickle
 import threading
-import warnings 
+import warnings
+import serial 
+
+ser = serial.Serial('COM3', 9600)
 
 warnings.filterwarnings('ignore')
 
@@ -28,6 +31,7 @@ def process_video(word):
     letter_duration = 0
     last_detected_letter = None
     current_letter_idx = 0
+    message = "Empiece a hacer la palabra: "
 
     while True:
         ret, frame = cap.read()
@@ -37,7 +41,7 @@ def process_video(word):
         H, W, _ = frame.shape
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = hands.process(frame_rgb)
-        
+
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
                 mp_drawing.draw_landmarks(
@@ -46,7 +50,7 @@ def process_video(word):
                     mp_hands.HAND_CONNECTIONS,
                     mp_drawing_styles.get_default_hand_landmarks_style(),
                     mp_drawing_styles.get_default_hand_connections_style())
-                
+
                 data_aux = []
                 x_ = []
                 y_ = []
@@ -71,6 +75,13 @@ def process_video(word):
                 prediction = model.predict([np.asarray(data_aux[:42] * 2)])
                 predicted_character = labels_dict[int(prediction[0])]
 
+                if len(word) <= current_letter_idx:
+                    message = "Palabra Completada!"
+                    result_label.config(text=message)
+                    start_button.config(text="Nueva palabra", command=lambda: reset_input("Empiece a hacer la palabra: "))
+                    root.after(3000, lambda: reset_input("Empiece a hacer la palabra: "))  # Esperar 3 segundos antes de resetear
+                    break
+
                 # Mostrar el rectángulo y la letra detectada en el cuadro de video
                 color = (0, 255, 0) if predicted_character == word[current_letter_idx] else (0, 0, 255)
                 cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
@@ -85,12 +96,19 @@ def process_video(word):
                     if predicted_character == word[current_letter_idx]:
                         detected_letters.append(predicted_character)
                         current_letter_idx += 1
+                        ser.write(b'1')
                         if current_letter_idx >= len(word):
-                            result_label.config(text="Palabra correcta")
+                            message = "Palabra Completada!"
+                            result_label.config(text=message)
+                            ser.write(b'2')
+                            root.after(3000, lambda: reset_input("Empiece a hacer la palabra: "))  # Esperar 3 segundos antes de resetear
                             detected_letters = []
-                            current_letter_idx = 0
                             break
                     else:
+                        message = "Palabra incorrecta"
+                        result_label.config(text=message)
+                        ser.write(b'3')
+                        root.after(3000, lambda: reset_input("Empiece a hacer la palabra: "))  # Esperar 3 segundos antes de resetear
                         detected_letters = []
                         current_letter_idx = 0
                     letter_duration = 0
@@ -104,7 +122,7 @@ def process_video(word):
 
         # Actualizar la etiqueta de resultados en la interfaz gráfica
         matched_letters = "".join(detected_letters)
-        result_label.config(text=f"Letras detectadas: {matched_letters}")
+        result_label.config(text=f"{message}{matched_letters}")
 
     cap.release()
     cv2.destroyAllWindows()
@@ -129,7 +147,17 @@ result_label.grid(row=1, column=0, columnspan=2, pady=10)
 # Función para iniciar el procesamiento de video en un hilo separado
 def start_video_processing():
     word = word_entry.get().upper()  # Convertir la palabra a mayúsculas
+    word_entry.grid_remove()  # Ocultar el campo de entrada
+    start_button.grid_remove()  # Ocultar el botón de iniciar
     threading.Thread(target=process_video, args=(word,)).start()
+
+# Función para resetear la entrada de palabra
+def reset_input(message):
+    result_label.config(text=message)  # Mostrar el mensaje
+    word_entry.grid()  # Mostrar el campo de entrada
+    word_entry.delete(0, tk.END)  # Borrar el contenido del campo de entrada
+    start_button.config(text="Iniciar", command=start_video_processing)  # Cambiar el comando del botón
+    start_button.grid()  # Mostrar el botón de iniciar
 
 # Agregar un botón para iniciar la detección
 start_button = ttk.Button(frame, text="Iniciar", command=start_video_processing)
