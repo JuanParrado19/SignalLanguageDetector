@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 
-DATA_DIR = './data'
+DATA_DIR = './datatest'
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
